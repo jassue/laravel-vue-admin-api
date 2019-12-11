@@ -24,15 +24,15 @@ class ExceptionReport
     public $report;
 
     public $doReport = [
-        AuthenticationException::class => 401,
-        ModelNotFoundException::class => 404,
-        AuthorizationException::class => 403,
-        ValidationException::class => 422,
-        UnauthorizedHttpException::class => 401,
-        NotFoundHttpException::class => 404,
-        MethodNotAllowedHttpException::class => 405,
-        QueryException::class => 401,
-        BusinessException::class => 400,
+        AuthenticationException::class => [ErrorCode::UNAUTHORIZED, 401],
+        ModelNotFoundException::class => [ErrorCode::NOT_FOUND, 404],
+        AuthorizationException::class => [ErrorCode::FORBIDDEN, 403],
+        ValidationException::class => [ErrorCode::UNPROCESSABLE_ENTITY, 422],
+        UnauthorizedHttpException::class => [ErrorCode::UNAUTHORIZED, 401],
+        NotFoundHttpException::class => [ErrorCode::NOT_FOUND, 404],
+        MethodNotAllowedHttpException::class => [ErrorCode::METHOD_NOT_ALLOWED, 405],
+        QueryException::class => [ErrorCode::SQL_ERROR, 500],
+        BusinessException::class => [ErrorCode::DEFAULT, 400],
     ];
 
     /**
@@ -96,10 +96,19 @@ class ExceptionReport
                 $this->exception->getStatusCode()
             );
         }
+        if ($this->exception instanceof QueryException) {
+            if (!env('APP_DEBUG')) {
+                return $this->failed(
+                    'Query Error!',
+                    $this->doReport[$this->report][0],
+                    $this->doReport[$this->report][1]
+                );
+            }
+        }
         return $this->failed(
             $this->exception->getMessage(),
-            ErrorCode::DEFAULT,
-            $this->doReport[$this->report]
+            $this->doReport[$this->report][0],
+            $this->doReport[$this->report][1]
         );
     }
 

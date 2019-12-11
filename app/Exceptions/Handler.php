@@ -47,7 +47,7 @@ class Handler extends ExceptionHandler
      */
     public function render($request, Exception $exception)
     {
-        if ($request->ajax()) {
+        if ($request->expectsJson()) {
             $reporter = ExceptionReport::make($exception);
             if ($reporter->shouldReturn()) {
                 return $reporter->report();
