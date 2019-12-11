@@ -64,4 +64,14 @@ abstract class BaseEnum
         }
         return new static($methodName, $value);
     }
+
+    /**
+     * @return array
+     * @throws \ReflectionException
+     */
+    public static function getConstants()
+    {
+        $enumClass = new \ReflectionClass(get_called_class());
+        return $enumClass->getConstants();
+    }
 }
