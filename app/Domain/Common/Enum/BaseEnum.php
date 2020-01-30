@@ -8,7 +8,6 @@ abstract class BaseEnum
 {
     public $name;
     public $value;
-    public $statusText;
 
     /**
      * BaseEnum constructor.
@@ -19,21 +18,6 @@ abstract class BaseEnum
     {
         $this->name = $name;
         $this->value = $value;
-        $this->statusText = self::getStatusTextByValue($value);
-    }
-
-    /**
-     * @param $value
-     * @return string
-     */
-    public static function getStatusTextByValue($value)
-    {
-        try {
-            $name = static::$statusMap[$value];
-        } catch (Exception $e) {
-            $name = '';
-        }
-        return $name;
     }
 
     /**
