@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use App\Domain\Common\Exception\BusinessException;
 use App\Domain\Common\Helpers\ExceptionReport;
 use Exception;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
@@ -14,7 +15,7 @@ class Handler extends ExceptionHandler
      * @var array
      */
     protected $dontReport = [
-        //
+        BusinessException::class
     ];
 
     /**
