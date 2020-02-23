@@ -24,7 +24,7 @@ class RouteServiceProvider extends ServiceProvider
     public function boot()
     {
         //
-
+        Route::pattern('id', '[0-9]+');
         parent::boot();
     }
 
@@ -39,7 +39,7 @@ class RouteServiceProvider extends ServiceProvider
 
         $this->mapWebRoutes();
 
-        //
+        $this->mapAdminRoutes();
     }
 
     /**
@@ -69,5 +69,16 @@ class RouteServiceProvider extends ServiceProvider
              ->middleware('api')
              ->namespace($this->namespace)
              ->group(base_path('routes/api.php'));
+    }
+
+    /**
+     * @return void
+     */
+    protected function mapAdminRoutes()
+    {
+        Route::prefix('api')
+            ->middleware('api')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/admin.php'));
     }
 }

@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Domain\Admin\Config\PermissionEnum;
+use App\Domain\Admin\Models\Admin;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -25,6 +27,10 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        foreach(PermissionEnum::getConstants() as $permissionName) {
+            Gate::define($permissionName, function ($user) use ($permissionName) {
+                return ($user instanceof Admin) && $user->hasPermission($permissionName);
+            });
+        }
     }
 }
