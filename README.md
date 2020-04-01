@@ -12,7 +12,29 @@
 │     │  ├─BaseQueueListener.php   基础队列监听器
 │     │  └─ErrorCode.php           错误码
 │     └─ ...     更多业务领域目录
-├─init.sh        初始化shell脚本
+├─crontab.sh        任务调度
 ├─echo-server.nginx.conf     Socket.IO服务器重定向配置文件
 ├─laravel.supervisor.conf    Supervisor配置文件
+```
+
+## 安装
+
+1、安装相关依赖
+
+```
+composer install
+```
+
+2、修改 `.env` 文件中mysql、redis等配置
+
+3、执行数据库迁移
+
+```
+php artisan migrate --seed
+```
+
+4、初始化jwt密钥
+
+```
+php artisan jwt:secret
 ```
