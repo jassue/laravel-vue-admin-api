@@ -10,7 +10,6 @@
 │  └─Domain      业务领域目录
 │     ├─Common   公共域目录
 │     └─ ...     更多业务领域目录
-├─init.sh        初始化shell脚本
 ├─laravel.supervisor.conf    Supervisor配置文件
 ```
 
@@ -31,4 +30,3 @@ composer install
 php artisan migrate --seed
 php artisan jwt:secret
 ```
-
