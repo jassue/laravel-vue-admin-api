@@ -16,11 +16,11 @@ class BusinessException extends Exception
 
     /**
      * BusinessException constructor.
-     * @param string|array $message
      * @param int $code
+     * @param string $message
      * @param int $statusCode
      */
-    public function __construct($message = '', int $code = ErrorCode::DEFAULT, int $statusCode = 400)
+    public function __construct(int $code = ErrorCode::DEFAULT, string $message = '', int $statusCode = 400)
     {
         $this->statusCode = $statusCode;
         parent::__construct($message, $code, null);

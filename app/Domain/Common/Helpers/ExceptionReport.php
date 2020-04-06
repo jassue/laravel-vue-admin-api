@@ -25,11 +25,11 @@ class ExceptionReport
 
     public $doReport = [
         AuthenticationException::class => [ErrorCode::UNAUTHORIZED, 401],
-        ModelNotFoundException::class => [ErrorCode::NOT_FOUND, 404],
+        ModelNotFoundException::class => [ErrorCode::MODEL_NOT_FOUND, 404],
         AuthorizationException::class => [ErrorCode::FORBIDDEN, 403],
         ValidationException::class => [ErrorCode::UNPROCESSABLE_ENTITY, 422],
         UnauthorizedHttpException::class => [ErrorCode::UNAUTHORIZED, 401],
-        NotFoundHttpException::class => [ErrorCode::NOT_FOUND, 404],
+        NotFoundHttpException::class => [ErrorCode::HTTP_NOT_FOUND, 404],
         MethodNotAllowedHttpException::class => [ErrorCode::METHOD_NOT_ALLOWED, 405],
         QueryException::class => [ErrorCode::SQL_ERROR, 500],
         BusinessException::class => [ErrorCode::DEFAULT, 400],
@@ -82,6 +82,7 @@ class ExceptionReport
      * @return \Illuminate\Http\JsonResponse
      */
     public function report(){
+        $errorMsg = ErrorCode::ErrorMsg[$this->doReport[$this->report][0]] ?? $this->exception->getMessage();
         if ($this->exception instanceof ValidationException) {
             return $this->failed(
                 collect($this->exception->errors())->first()[0],
@@ -91,7 +92,7 @@ class ExceptionReport
         }
         if ($this->exception instanceof BusinessException) {
             return $this->failed(
-                $this->exception->getMessage(),
+                $this->exception->getMessage() ?: (ErrorCode::ErrorMsg[$this->exception->getCode()] ?? ''),
                 $this->exception->getCode(),
                 $this->exception->getStatusCode()
             );
@@ -99,14 +100,14 @@ class ExceptionReport
         if ($this->exception instanceof QueryException) {
             if (!env('APP_DEBUG')) {
                 return $this->failed(
-                    'Query Error!',
+                    $errorMsg,
                     $this->doReport[$this->report][0],
                     $this->doReport[$this->report][1]
                 );
             }
         }
         return $this->failed(
-            $this->exception->getMessage(),
+            $errorMsg,
             $this->doReport[$this->report][0],
             $this->doReport[$this->report][1]
         );
