@@ -23,11 +23,14 @@ abstract class BaseEnum
     /**
      * @param $value
      * @return BaseEnum|null
-     * @throws \ReflectionException
      */
     public static function byValue($value)
     {
-        $enumClass = new \ReflectionClass(get_called_class());
+        try {
+            $enumClass = new \ReflectionClass(get_called_class());
+        } catch (\ReflectionException $e) {
+            return null;
+        }
         $constants = collect($enumClass->getConstants())->flip();
         if ($constants->has($value))
             return new static($constants->all()[$value], $value);
@@ -51,11 +54,14 @@ abstract class BaseEnum
 
     /**
      * @return array
-     * @throws \ReflectionException
      */
     public static function getConstants()
     {
-        $enumClass = new \ReflectionClass(get_called_class());
+        try {
+            $enumClass = new \ReflectionClass(get_called_class());
+        } catch (\ReflectionException $e) {
+            return [];
+        }
         return $enumClass->getConstants();
     }
 }
