@@ -3,21 +3,18 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Domain\Admin\Config\StatusEnum;
-use App\Domain\Common\ErrorCode;
-use App\Domain\Common\Exception\BusinessException;
 use App\Http\Controllers\Api\BaseController;
 use App\Http\Resources\AdminResource;
 use App\Http\Resources\RoleResource;
 use Facades\App\Domain\Admin\AdminService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 
 class AdminController extends BaseController
 {
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function info(Request $request)
     {
@@ -28,7 +25,7 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function updateBySelf(Request $request)
     {
@@ -38,16 +35,12 @@ class AdminController extends BaseController
             'password'         => 'nullable|min:6|max:30',
             'confirm_password' => 'nullable|required_with:password|same:password'
         ]);
-        $admin = $request->user();
-        if (!empty($request->input('password')) && !Hash::check($request->input('old_password'), $admin->password)) {
-            throw new BusinessException('旧密码不正确', ErrorCode::OLD_PWD_ERROR);
-        }
-        return $this->success(AdminService::updateByAdmin($admin, $request->all()));
+        return $this->success(AdminService::updateByAdmin($request->user(), $request->all()));
     }
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
     public function getList(Request $request)
     {
@@ -64,7 +57,7 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function toggleStatus(Request $request)
     {
@@ -74,10 +67,7 @@ class AdminController extends BaseController
         ]);
         $ids = $request->input('ids');
         $status = $request->input('status');
-        if (in_array(1, $ids) || in_array($request->user()->id, $ids)) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
-        AdminService::toggleAdminStatusByIds($ids, $status);
+        AdminService::toggleAdminStatusByIds($request->user(), $ids, $status);
         return $this->success([
             'status' => $status,
             'status_text' => StatusEnum::$statusMap[$status]
@@ -85,7 +75,7 @@ class AdminController extends BaseController
     }
 
     /**
-     * @return void
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function getRoleListForCreateOrUpdate()
     {
@@ -94,7 +84,7 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse
      */
     public function store(Request $request)
     {
@@ -116,8 +106,8 @@ class AdminController extends BaseController
     }
 
     /**
-     * @param integer $id
-     * @return void
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function detail(int $id)
     {
@@ -126,8 +116,8 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @param integer $id
-     * @return void
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function update(Request $request, int $id)
     {
@@ -149,11 +139,8 @@ class AdminController extends BaseController
             'password' => 'nullable|min:6|max:30',
             'status'   => 'required|integer|in:' . implode(',', StatusEnum::getConstants())
         ]);
-        if ($request->user()->id == $id || $id == 1) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
         $admin = AdminService::getById($id);
-        AdminService::update($admin, $request->all());
+        AdminService::update($request->user(), $admin, $request->all());
         AdminService::syncRole($admin, $request->input('role_ids'));
         AdminService::forgetPermissionCacheById($id);
         return $this->success($admin);
@@ -161,21 +148,18 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @param integer $id
-     * @return void
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
     public function destroy(Request $request, int $id)
     {
-        if ($id == 1 || $request->user()->id == $id) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
-        AdminService::destroyByIds([$id]);
+        AdminService::destroyByIds($request->user(), [$id]);
         return $this->noContent();
     }
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse
      */
     public function batchDestroy(Request $request)
     {
@@ -183,16 +167,13 @@ class AdminController extends BaseController
             'ids'    => 'required|array|exists:admins,id'
         ]);
         $ids = $request->input('ids');
-        if (in_array(1, $ids) || in_array($request->user()->id, $ids)) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
-        AdminService::destroyByIds($ids);
+        AdminService::destroyByIds($request->user(), $ids);
         return $this->noContent();
     }
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\Resources\Json\AnonymousResourceCollection
      */
     public function getRoleList(Request $request)
     {
@@ -207,7 +188,7 @@ class AdminController extends BaseController
     }
 
     /**
-     * @return void
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function getPermissionListForCreateOrUpdate()
     {
@@ -216,7 +197,7 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse
      */
     public function roleStore(Request $request)
     {
@@ -230,8 +211,8 @@ class AdminController extends BaseController
     }
 
     /**
-     * @param integer $id
-     * @return void
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function roleDetail(int $id)
     {
@@ -240,8 +221,8 @@ class AdminController extends BaseController
 
     /**
      * @param Request $request
-     * @param integer $id
-     * @return void
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     public function roleUpdate(Request $request, int $id)
     {
@@ -254,36 +235,28 @@ class AdminController extends BaseController
             ],
             'permission_ids' => 'required|array|exists:admin_permissions,id'
         ]);
-        if ($id == 1) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
         $role = AdminService::getRoleById($id);
-        AdminService::updateRole($role, $request->all());
+        AdminService::updateRole($request->user(), $role, $request->all());
         AdminService::roleSyncPermission($role, $request->input('permission_ids'));
         AdminService::forgetPermissionCacheByRoleIds([$id]);
         return $this->success($role);
     }
 
     /**
-     * @param integer $id
-     * @return void
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function roleDestroy(int $id)
+    public function roleDestroy(Request $request, int $id)
     {
-        if ($id == 1) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
-        if (AdminService::checkRoleUsing([$id])) {
-            throw new BusinessException('角色已关联账号，无法删除，请先解除关联');
-        }
-        AdminService::destroyRoleByIds([$id]);
+        AdminService::destroyRoleByIds($request->user(), [$id]);
         AdminService::forgetPermissionCacheByRoleIds([$id]);
         return $this->noContent();
     }
 
     /**
      * @param Request $request
-     * @return void
+     * @return \Illuminate\Http\JsonResponse
      */
     public function roleBatchDestroy(Request $request)
     {
@@ -291,13 +264,7 @@ class AdminController extends BaseController
             'ids'    => 'required|array|exists:admin_roles,id'
         ]);
         $ids = $request->input('ids');
-        if (in_array(1, $ids)) {
-            throw new BusinessException('无法操作', ErrorCode::CANT_OPERATION);
-        }
-        if (AdminService::checkRoleUsing($ids)) {
-            throw new BusinessException('角色已关联账号，无法删除，请先解除关联');
-        }
-        AdminService::destroyRoleByIds($ids);
+        AdminService::destroyRoleByIds($request->user(), $ids);
         AdminService::forgetPermissionCacheByRoleIds($ids);
         return $this->noContent();
     }

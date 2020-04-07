@@ -6,10 +6,13 @@ use App\Domain\Admin\Config\StatusEnum;
 use App\Domain\Admin\Models\Admin;
 use App\Domain\Admin\Models\AdminPermission;
 use App\Domain\Admin\Models\AdminRole;
+use App\Domain\Common\ErrorCode;
+use App\Domain\Common\Exception\BusinessException;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 class AdminService
 {
@@ -32,6 +35,20 @@ class AdminService
     }
 
     /**
+     * @param $admin
+     * @param string $password
+     * @throws BusinessException
+     */
+    public function checkLoginAuth($admin, string $password) {
+        if (!$admin || !Hash::check($password, $admin->password)) {
+            throw new BusinessException(ErrorCode::ACCOUNT_PWD_ERROR);
+        }
+        if ($admin->status == StatusEnum::DISABLE) {
+            throw new BusinessException(ErrorCode::ACCOUNT_DISABLE);
+        }
+    }
+
+    /**
      * @param Collection $roles
      * @return void
      */
@@ -48,12 +65,16 @@ class AdminService
     /**
      * @param Admin $admin
      * @param array $data
-     * @return void
+     * @return Admin
+     * @throws BusinessException
      */
     public function updateByAdmin(Admin $admin, array $data)
     {
         $admin->name = $data['name'];
         if (!empty($data['password'])) {
+            if (!Hash::check($data['old_password'], $admin->password)) {
+                throw new BusinessException(ErrorCode::OLD_PWD_ERROR);
+            }
             $admin->password = $data['password'];
         }
         $admin->save();
@@ -70,7 +91,8 @@ class AdminService
     {
         return Admin::with('roles')
             ->when(!is_null($keywords), function ($query) use ($keywords) {
-                $query->where('name', 'like', "%{$keywords}%");
+                $query->where('name', 'like', "{$keywords}%")
+                    ->orWhere('username', 'like', "{$keywords}%");
             })
             ->when(!is_null($status), function ($query) use ($status) {
                 $query->where('status', $status);
@@ -80,20 +102,46 @@ class AdminService
     }
 
     /**
-     * @param array $ids
-     * @param integer $status
-     * @return void
+     * @param Admin $admin
+     * @param array $adminIds
+     * @throws BusinessException
      */
-    public function toggleAdminStatusByIds(array $ids, int $status)
+    public function checkAdminOperateAuth(Admin $admin, array $adminIds) {
+        if (in_array(Admin::value('id'), $adminIds) || in_array($admin->id, $adminIds)) {
+            throw new BusinessException( ErrorCode::CANT_OPERATION_ADMIN);
+        }
+    }
+
+    /**
+     * @param Collection $selfRoleCollection
+     * @param array $roleIds
+     * @throws BusinessException
+     */
+    public function checkRoleOperateAuth(Collection $selfRoleCollection, array $roleIds) {
+        if (in_array(AdminRole::value('id'), $roleIds) || $selfRoleCollection->pluck('id')->intersect($roleIds)->isNotEmpty()) {
+            throw new BusinessException(ErrorCode::CANT_OPERATION_ROLE);
+        }
+    }
+
+    /**
+     * @param Admin $admin
+     * @param array $ids
+     * @param int $status
+     * @throws BusinessException
+     */
+    public function toggleAdminStatusByIds(Admin $admin, array $ids, int $status)
     {
+        $this->checkAdminOperateAuth($admin, $ids);
         Admin::whereIn('id', $ids)->update(['status' => $status]);
     }
 
     /**
+     * @param Admin $admin
      * @param array $ids
-     * @return void
+     * @throws BusinessException
      */
-    public function destroyByIds(array $ids) {
+    public function destroyByIds(Admin $admin, array $ids) {
+        $this->checkAdminOperateAuth($admin, $ids);
         Admin::whereIn('id', $ids)->delete();
         DB::table('admin_has_roles')->whereIn('admin_id', $ids)->delete();
     }
@@ -157,12 +205,14 @@ class AdminService
     }
 
     /**
+     * @param Admin $user
      * @param Admin $admin
      * @param array $params
-     * @return void
+     * @throws BusinessException
      */
-    public function update(Admin $admin, array $params)
+    public function update(Admin $user, Admin $admin, array $params)
     {
+        $this->checkAdminOperateAuth($user, [$admin->id]);
         if (is_null($params['password'])) {
             unset($params['password']);
         }
@@ -246,21 +296,26 @@ class AdminService
     }
 
     /**
+     * @param Admin $admin
      * @param AdminRole $role
      * @param array $params
-     * @return void
+     * @throws BusinessException
      */
-    public function updateRole(AdminRole $role, array $params)
+    public function updateRole(Admin $admin, AdminRole $role, array $params)
     {
+        $this->checkRoleOperateAuth($admin->roles, [$role->id]);
         $role->update($params);
     }
 
     /**
+     * @param Admin $admin
      * @param array $roleIds
-     * @return void
+     * @throws BusinessException
      */
-    public function destroyRoleByIds(array $roleIds)
+    public function destroyRoleByIds(Admin $admin, array $roleIds)
     {
+        $this->checkRoleOperateAuth($admin->roles, $roleIds);
+        $this->checkRoleUsing($roleIds);
         AdminRole::whereIn('id', $roleIds)->delete();
         DB::table('role_has_permissions')->whereIn('role_id', $roleIds)->delete();
     }
@@ -291,9 +346,11 @@ class AdminService
 
     /**
      * @param array $roleIds
-     * @return void
+     * @throws BusinessException
      */
     public function checkRoleUsing(array $roleIds) {
-        return DB::table('admin_has_roles')->whereIn('role_id', $roleIds)->exists();
+        if (DB::table('admin_has_roles')->whereIn('role_id', $roleIds)->exists()) {
+            throw new BusinessException(ErrorCode::CANT_DELETE_ROLE);
+        }
     }
 }
