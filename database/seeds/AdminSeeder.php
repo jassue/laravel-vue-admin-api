@@ -1,9 +1,9 @@
 <?php
 
-use App\Domain\Admin\Models\AdminPermission;
 use App\Domain\Admin\Config\PermissionEnum;
 use App\Domain\Admin\Models\Admin;
 use App\Domain\Admin\Models\AdminRole;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Seeder;
 
 class AdminSeeder extends Seeder
@@ -15,90 +15,20 @@ class AdminSeeder extends Seeder
      */
     public function run()
     {
-        // 添加权限
-        AdminPermission::insert([
-            [
-                'id' => 1,
-                'parent_id' => 0,
-                'name' => PermissionEnum::DASHBOARD,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 2,
-                'parent_id' => 0,
-                'name' => PermissionEnum::ADMIN_MANAGEMENT,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 3,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ADMIN_VIEW,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 4,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ADMIN_CREATE,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 5,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ADMIN_UPDATE,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 6,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ADMIN_DELETE,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 7,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ROLE_VIEW,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 8,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ROLE_CREATE,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 9,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ROLE_UPDATE,
-                'created_at' => time(),
-                'updated_at' => time()
-            ],
-            [
-                'id' => 10,
-                'parent_id' => 2,
-                'name' => PermissionEnum::ROLE_DELETE,
-                'created_at' => time(),
-                'updated_at' => time()
-            ]
-        ]);
-
         // 添加角色
         $role = AdminRole::create([
             'name' => 'admin',
+            'desc' => '由系统自动创建，拥有最高权限。',
+            'is_preset' => true
         ]);
-        $role->permissions()->attach(
-            AdminPermission::all()->pluck('id'),
-            [
-                'created_at' => time(),
-                'updated_at' => time()
-            ]
+        DB::table('role_has_permissions')->insert(
+            PermissionEnum::getFlattenCollection()->map(function ($permission) use ($role) {
+                $newItem['role_id'] = $role->id;
+                $newItem['permission_id'] = $permission['id'];
+                $newItem['created_at'] = time();
+                $newItem['updated_at'] = time();
+                return $newItem;
+            })->toArray()
         );
 
         // 添加管理员
@@ -106,7 +36,8 @@ class AdminSeeder extends Seeder
             'id' => '1',
             'username' => 'admin',
             'name' => 'admin',
-            'password' => '123456'
+            'password' => '123456',
+            'is_preset' => true
         ]);
         $admin->roles()->attach(
             $role->id,

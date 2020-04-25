@@ -15,11 +15,15 @@ class Admin extends Authenticatable implements JWTSubject
     const AUTH_CACHE_KEY_PRE = 'admin_auth_';
 
     protected $fillable = [
-        'username', 'password', 'name', 'status'
+        'username', 'password', 'name', 'status', 'is_preset'
     ];
 
     protected $hidden = [
-        'password'
+        'password', 'is_preset'
+    ];
+
+    protected $casts = [
+        'is_preset' => 'boolean'
     ];
 
     /**
@@ -52,11 +56,11 @@ class Admin extends Authenticatable implements JWTSubject
         return $this->belongsToMany(AdminRole::class, 'admin_has_roles', 'admin_id', 'role_id');
     }
 
-    public function hasPermission(string $permissionName)
+    public function hasPermission(string $permissionKey)
     {
-        $ownedPermissions = Cache::rememberForever(self::AUTH_CACHE_KEY_PRE . $this->id, function () {
-            return AdminService::getAllPermissionByRoles($this->roles);
+        $ownedPermissions = Cache::remember(self::AUTH_CACHE_KEY_PRE . $this->id, 24 * 60 * 60, function () {
+            return AdminService::getAllPermissionByRoles($this->roles)->pluck('key');
         });
-        return $ownedPermissions->contains($permissionName);
+        return $ownedPermissions->contains($permissionKey);
     }
 }

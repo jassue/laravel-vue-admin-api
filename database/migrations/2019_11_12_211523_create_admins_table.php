@@ -18,6 +18,7 @@ class CreateAdminsTable extends Migration
             $table->string('username')->unique();
             $table->string('password');
             $table->string('name');
+            $table->boolean('is_preset')->default(false)->comment('是否为系统预设管理员');
             $table->unsignedTinyInteger('status')->default(0)->comment('0=启用;1=禁用');
             $table->unsignedInteger('created_at');
             $table->unsignedInteger('updated_at');

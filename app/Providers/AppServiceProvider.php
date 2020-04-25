@@ -23,6 +23,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        if (env('APP_DEBUG')) {
+            \Illuminate\Support\Facades\DB::listen(function ($query) {
+                \Illuminate\Support\Facades\Log::log('debug', $query->sql . '  time:' . $query->time);
+            });
+        }
     }
 }

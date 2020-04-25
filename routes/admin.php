@@ -39,7 +39,7 @@ Route::group(['namespace' => 'Api\Admin', 'prefix' => 'admin'], function () {
             Route::delete('/{id}', 'AdminController@roleDestroy')->middleware('can:' . PermissionEnum::ROLE_DELETE);
 
             Route::get('/permissions', 'AdminController@getPermissionListForCreateOrUpdate')->middleware('can-any:' . PermissionEnum::ROLE_CREATE . '|' . PermissionEnum::ROLE_UPDATE);
-            Route::delete('/batch', 'AdminController@roleBatchDestroy')->middleware('can:' . PermissionEnum::ADMIN_DELETE);
+            Route::delete('/batch', 'AdminController@roleBatchDestroy')->middleware('can:' . PermissionEnum::ROLE_DELETE);
         });
     });
 });

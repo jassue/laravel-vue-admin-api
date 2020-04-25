@@ -2,9 +2,9 @@
 
 namespace App\Domain\Admin;
 
+use App\Domain\Admin\Config\PermissionEnum;
 use App\Domain\Admin\Config\StatusEnum;
 use App\Domain\Admin\Models\Admin;
-use App\Domain\Admin\Models\AdminPermission;
 use App\Domain\Admin\Models\AdminRole;
 use App\Domain\Common\ErrorCode;
 use App\Domain\Common\Exception\BusinessException;
@@ -35,6 +35,20 @@ class AdminService
     }
 
     /**
+     * @return mixed
+     */
+    public function getPresetAdminId() {
+        return Admin::where('is_preset', true)->value('id');
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getPresetRoleId() {
+        return AdminRole::where('is_preset', true)->value('id');
+    }
+
+    /**
      * @param $admin
      * @param string $password
      * @throws BusinessException
@@ -50,16 +64,27 @@ class AdminService
 
     /**
      * @param Collection $roles
-     * @return void
+     * @return \Illuminate\Support\Collection
      */
     public function getAllPermissionByRoles(Collection $roles)
     {
-        $permissions = collect([]);
-        $roles->each(function ($role) use (&$permissions) {
-            $diff = $role->permissions->diff($permissions);
-            $permissions = $permissions->merge($diff);
-        });
-        return $permissions->pluck('name');
+        $roleIds = $roles->pluck('id');
+        $permissionIds = DB::table('role_has_permissions')
+            ->whereIn('role_id', $roleIds)
+            ->pluck('permission_id')
+            ->unique();
+        return PermissionEnum::getByIds($permissionIds);
+    }
+
+    /**
+     * @param AdminRole $role
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAllPermissionByRole(AdminRole $role) {
+        $permissionIds = DB::table('role_has_permissions')
+            ->where('role_id', $role->id)
+            ->pluck('permission_id');
+        return PermissionEnum::getByIds($permissionIds);
     }
 
     /**
@@ -82,10 +107,10 @@ class AdminService
     }
 
     /**
-     * @param null|string $keywords
-     * @param null|integer $status
-     * @param integer $pageSize
-     * @return void
+     * @param $keywords
+     * @param $status
+     * @param int $pageSize
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getAdminList($keywords, $status, int $pageSize)
     {
@@ -107,7 +132,7 @@ class AdminService
      * @throws BusinessException
      */
     public function checkAdminOperateAuth(Admin $admin, array $adminIds) {
-        if (in_array(Admin::value('id'), $adminIds) || in_array($admin->id, $adminIds)) {
+        if (in_array($this->getPresetAdminId(), $adminIds) || in_array($admin->id, $adminIds)) {
             throw new BusinessException( ErrorCode::CANT_OPERATION_ADMIN);
         }
     }
@@ -118,7 +143,7 @@ class AdminService
      * @throws BusinessException
      */
     public function checkRoleOperateAuth(Collection $selfRoleCollection, array $roleIds) {
-        if (in_array(AdminRole::value('id'), $roleIds) || $selfRoleCollection->pluck('id')->intersect($roleIds)->isNotEmpty()) {
+        if (in_array($this->getPresetRoleId(), $roleIds) || $selfRoleCollection->pluck('id')->intersect($roleIds)->isNotEmpty()) {
             throw new BusinessException(ErrorCode::CANT_OPERATION_ROLE);
         }
     }
@@ -243,11 +268,11 @@ class AdminService
     }
 
     /**
-     * @return void
+     * @return array
      */
     public function getPermissionTreeList()
     {
-        return AdminPermission::with('children')->where('parent_id', 0)->get();
+        return PermissionEnum::$permissionList;
     }
 
     /**
@@ -264,16 +289,17 @@ class AdminService
     /**
      * @param AdminRole $role
      * @param array $permissionIds
-     * @return void
      */
     public function roleBindPermission(AdminRole $role, array $permissionIds)
     {
-        $role->permissions()->attach(
-            $permissionIds,
-            [
-                'created_at' => time(),
-                'updated_at' => time()
-            ]
+        DB::table('role_has_permissions')->insert(
+            collect($permissionIds)->map(function ($permissionId) use ($role) {
+                $newItem['role_id'] = $role->id;
+                $newItem['permission_id'] = $permissionId;
+                $newItem['created_at'] = time();
+                $newItem['updated_at'] = time();
+                return $newItem;
+            })->toArray()
         );
     }
 
@@ -284,15 +310,25 @@ class AdminService
      */
     public function roleSyncPermission(AdminRole $role, array $permissionIds)
     {
-        $role->permissions()->sync(
-            collect($permissionIds)->keyBy(function ($item) {
-                return $item;
-            })->map(function () {
+        $dbPermissionIds = DB::table('role_has_permissions')->where('role_id', $role->id)->pluck('permission_id');
+        $needDeleteIds = $dbPermissionIds->diff(collect($permissionIds));
+        $needInsertIds = collect($permissionIds)->diff($dbPermissionIds);
+        if ($needDeleteIds->isNotEmpty()) {
+            DB::table('role_has_permissions')
+                ->where('role_id', $role->id)
+                ->whereIn('permission_id', $needDeleteIds)
+                ->delete();
+        }
+        if ($needInsertIds->isNotEmpty()) {
+            $insertData = $needInsertIds->map(function ($permissionId) use ($role) {
+                $newItem['role_id'] = $role->id;
+                $newItem['permission_id'] = $permissionId;
                 $newItem['created_at'] = Carbon::now()->timestamp;
                 $newItem['updated_at'] = Carbon::now()->timestamp;
                 return $newItem;
-            })->toArray()
-        );
+            })->toArray();
+            DB::table('role_has_permissions')->insert($insertData);
+        }
     }
 
     /**

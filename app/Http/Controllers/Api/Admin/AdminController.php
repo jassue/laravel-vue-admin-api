@@ -8,6 +8,7 @@ use App\Http\Resources\AdminResource;
 use App\Http\Resources\RoleResource;
 use Facades\App\Domain\Admin\AdminService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AdminController extends BaseController
@@ -140,8 +141,10 @@ class AdminController extends BaseController
             'status'   => 'required|integer|in:' . implode(',', StatusEnum::getConstants())
         ]);
         $admin = AdminService::getById($id);
-        AdminService::update($request->user(), $admin, $request->all());
-        AdminService::syncRole($admin, $request->input('role_ids'));
+        DB::transaction(function () use ($request, $admin) {
+            AdminService::update($request->user(), $admin, $request->all());
+            AdminService::syncRole($admin, $request->input('role_ids'));
+        });
         AdminService::forgetPermissionCacheById($id);
         return $this->success($admin);
     }
@@ -203,7 +206,7 @@ class AdminController extends BaseController
     {
         $request->validate([
             'name'           => 'required|string|max:20|unique:admin_roles',
-            'permission_ids' => 'required|array|exists:admin_permissions,id'
+            'permission_ids' => 'required|array'
         ]);
         $role = AdminService::createRole($request->input('name'));
         AdminService::roleBindPermission($role, $request->input('permission_ids'));
@@ -216,7 +219,9 @@ class AdminController extends BaseController
      */
     public function roleDetail(int $id)
     {
-        return $this->success(new RoleResource(AdminService::getRoleById($id)));
+        $role = AdminService::getRoleById($id);
+        $role->permissions = AdminService::getAllPermissionByRole($role);
+        return $this->success(new RoleResource($role));
     }
 
     /**
@@ -233,11 +238,13 @@ class AdminController extends BaseController
                 'max:20',
                 Rule::unique('admin_roles')->ignore($id)
             ],
-            'permission_ids' => 'required|array|exists:admin_permissions,id'
+            'permission_ids' => 'required|array'
         ]);
         $role = AdminService::getRoleById($id);
-        AdminService::updateRole($request->user(), $role, $request->all());
-        AdminService::roleSyncPermission($role, $request->input('permission_ids'));
+        DB::transaction(function () use ($request, $role) {
+            AdminService::updateRole($request->user(), $role, $request->all());
+            AdminService::roleSyncPermission($role, $request->input('permission_ids'));
+        });
         AdminService::forgetPermissionCacheByRoleIds([$id]);
         return $this->success($role);
     }

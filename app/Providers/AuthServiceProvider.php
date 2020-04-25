@@ -27,9 +27,9 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        foreach(PermissionEnum::getConstants() as $permissionName) {
-            Gate::define($permissionName, function ($user) use ($permissionName) {
-                return ($user instanceof Admin) && $user->hasPermission($permissionName);
+        foreach(PermissionEnum::getConstants() as $permissionKey) {
+            Gate::define($permissionKey, function ($user) use ($permissionKey) {
+                return ($user instanceof Admin) && $user->hasPermission($permissionKey);
             });
         }
     }

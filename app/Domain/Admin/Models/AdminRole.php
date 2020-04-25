@@ -7,15 +7,14 @@ use App\Customize\Model;
 class AdminRole extends Model
 {
     protected $fillable = [
-        'name'
+        'name', 'desc', 'is_preset'
     ];
 
     protected $hidden = [
-        'updated_at', 'pivot'
+        'updated_at', 'is_preset', 'pivot'
     ];
 
-    public function permissions()
-    {
-        return $this->belongsToMany(AdminPermission::class, 'role_has_permissions', 'role_id', 'permission_id');
-    }
+    protected $casts = [
+        'is_preset' => 'boolean'
+    ];
 }
