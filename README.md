@@ -25,7 +25,11 @@
 composer install
 ```
 
-2、修改 `.env` 文件中mysql、redis等配置
+2、环境变量配置
+```
+cp .env.example .env
+php artisan key:generate
+```
 
 3、执行数据库迁移
 
