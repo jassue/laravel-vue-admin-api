@@ -163,6 +163,18 @@ class AdminService
     /**
      * @param Admin $admin
      * @param array $ids
+     * @param string $password
+     * @throws BusinessException
+     */
+    public function resetPasswordByIds(Admin $admin, array $ids, string $password)
+    {
+        $this->checkAdminOperateAuth($admin, $ids);
+        Admin::whereIn('id', $ids)->update(['password' => bcrypt($password)]);
+    }
+
+    /**
+     * @param Admin $admin
+     * @param array $ids
      * @throws BusinessException
      */
     public function destroyByIds(Admin $admin, array $ids) {
@@ -238,7 +250,7 @@ class AdminService
     public function update(Admin $user, Admin $admin, array $params)
     {
         $this->checkAdminOperateAuth($user, [$admin->id]);
-        if (is_null($params['password'])) {
+        if (!isset($params['password'])) {
             unset($params['password']);
         }
         $admin->update($params);
@@ -254,17 +266,18 @@ class AdminService
     }
 
     /**
-     * @param null|string $keywords
-     * @param integer $pageSize
-     * @return void
+     * @param $keywords
+     * @param int $pageSize
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
     public function getRoleList($keywords, int $pageSize)
     {
-        return AdminRole::when(!is_null($keywords), function ($query) use ($keywords) {
-            $query->where('name', 'like', "%{$keywords}%");
-        })
-        ->latest()
-        ->paginate($pageSize);
+        return AdminRole::with('permissionRelation')
+            ->when(!is_null($keywords), function ($query) use ($keywords) {
+                $query->where('name', 'like', "%{$keywords}%");
+            })
+            ->latest()
+            ->paginate($pageSize);
     }
 
     /**

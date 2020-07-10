@@ -137,7 +137,7 @@ class AdminController extends BaseController
                 Rule::unique('admins')->ignore($id)
             ],
             'role_ids' => 'required|array|exists:admin_roles,id',
-            'password' => 'nullable|min:6|max:30',
+            'password' => 'min:6|max:30',
             'status'   => 'required|integer|in:' . implode(',', StatusEnum::getConstants())
         ]);
         $admin = AdminService::getById($id);
@@ -171,6 +171,20 @@ class AdminController extends BaseController
         ]);
         $ids = $request->input('ids');
         AdminService::destroyByIds($request->user(), $ids);
+        return $this->noContent();
+    }
+
+    /**
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function batchResetPassword(Request $request)
+    {
+        $request->validate([
+            'ids'      => 'required|array|exists:admins,id',
+            'password' => 'required|min:6|max:30'
+        ]);
+        AdminService::resetPasswordByIds($request->user(), $request->input('ids'), $request->input('password'));
         return $this->noContent();
     }
 

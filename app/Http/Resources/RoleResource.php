@@ -18,7 +18,7 @@ class RoleResource extends JsonResource
         return [
             'id'            => $this->id,
             'name'          => $this->name,
-            'permissions'   => $this->permissions ? $this->permissions->pluck('id') : null,
+            'permissions_ids'   => $this->permissionRelation ? $this->permissionRelation->pluck('permission_id') : [],
             'is_actionable' => !$this->is_preset && !in_array($this->id, $request->user()->roles->pluck('id')->toArray()) ? true : false,
             'created_at'    => Carbon::createFromTimeString($this->created_at)->format('Y-m-d H:i')
         ];

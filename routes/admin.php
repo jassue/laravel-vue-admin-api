@@ -25,6 +25,7 @@ Route::group(['namespace' => 'Api\Admin', 'prefix' => 'admin'], function () {
             Route::get('/roles', 'AdminController@getRoleListForCreateOrUpdate')->middleware('can-any:' . PermissionEnum::ADMIN_CREATE . '|' . PermissionEnum::ADMIN_UPDATE);
             Route::patch('/toggle-status', 'AdminController@toggleStatus')->middleware('can:' . PermissionEnum::ADMIN_VIEW);
             Route::delete('/batch', 'AdminController@batchDestroy')->middleware('can:' . PermissionEnum::ADMIN_DELETE);
+            Route::patch('/batch/password', 'AdminController@batchResetPassword')->middleware('can:' . PermissionEnum::ADMIN_UPDATE);
         });
 
         //管理员角色
