@@ -17,12 +17,4 @@ class AdminRole extends Model
     protected $casts = [
         'is_preset' => 'boolean'
     ];
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\HasMany
-     */
-    public function permissionRelation()
-    {
-        return $this->hasMany(RoleHasPermission::class, 'role_id', 'id')->select('role_id', 'permission_id');
-    }
 }

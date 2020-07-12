@@ -272,12 +272,28 @@ class AdminService
      */
     public function getRoleList($keywords, int $pageSize)
     {
-        return AdminRole::with('permissionRelation')
-            ->when(!is_null($keywords), function ($query) use ($keywords) {
+        $list = AdminRole::when(!is_null($keywords),
+            function ($query) use ($keywords) {
                 $query->where('name', 'like', "%{$keywords}%");
             })
             ->latest()
             ->paginate($pageSize);
+        $rolePermissions = DB::table('role_has_permissions')
+            ->whereIn('role_id', $list->getCollection()->pluck('id'))
+            ->select('role_id', 'permission_id')
+            ->get()
+            ->groupBy('role_id')
+            ->map(function ($item) {
+                return $item->pluck('permission_id')->toArray();
+            });
+        return $list->setCollection(
+            $list->getCollection()->map(
+                function ($item) use ($rolePermissions) {
+                    $item->permission_ids = $rolePermissions[$item->id];
+                    return $item;
+                }
+            )
+        );
     }
 
     /**

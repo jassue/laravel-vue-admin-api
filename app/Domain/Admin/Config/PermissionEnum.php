@@ -7,7 +7,6 @@ use Illuminate\Support\Collection;
 
 class PermissionEnum extends BaseEnum {
     const DASHBOARD = 'DASHBOARD';
-    const ADMIN_MANAGEMENT = 'ADMIN_MANAGEMENT';
     const ADMIN_VIEW = 'ADMIN_VIEW';
     const ADMIN_CREATE = 'ADMIN_CREATE';
     const ADMIN_UPDATE = 'ADMIN_UPDATE';
@@ -25,77 +24,100 @@ class PermissionEnum extends BaseEnum {
         ],
         [
             'id' => 2,
-            'key' => self::ADMIN_MANAGEMENT,
-            'name' => '管理员管理',
+            'key' => '',
+            'name' => '系统管理',
             'children' => [
                 [
                     'id' => 3,
-                    'key' => self::ADMIN_VIEW,
-                    'name' => '管理员列表'
-                ],
-                [
-                    'id' => 4,
-                    'key' => self::ADMIN_CREATE,
-                    'name' => '添加管理员'
-                ],
-                [
-                    'id' => 5,
-                    'key' => self::ADMIN_UPDATE,
-                    'name' => '更新管理员'
-                ],
-                [
-                    'id' => 6,
-                    'key' => self::ADMIN_DELETE,
-                    'name' => '删除管理员'
-                ],
-                [
-                    'id' => 7,
-                    'key' => self::ROLE_VIEW,
-                    'name' => '角色列表'
+                    'key' => '',
+                    'name' => '管理员管理',
+                    'children' => [
+                        [
+                            'id' => 4,
+                            'key' => self::ADMIN_VIEW,
+                            'name' => '列表'
+                        ],
+                        [
+                            'id' => 5,
+                            'key' => self::ADMIN_CREATE,
+                            'name' => '添加'
+                        ],
+                        [
+                            'id' => 6,
+                            'key' => self::ADMIN_UPDATE,
+                            'name' => '编辑'
+                        ],
+                        [
+                            'id' => 7,
+                            'key' => self::ADMIN_DELETE,
+                            'name' => '删除'
+                        ]
+                    ]
                 ],
                 [
                     'id' => 8,
-                    'key' => self::ROLE_CREATE,
-                    'name' => '添加角色'
-                ],
-                [
-                    'id' => 9,
-                    'key' => self::ROLE_UPDATE,
-                    'name' => '更新角色'
-                ],
-                [
-                    'id' => 10,
-                    'key' => self::ROLE_DELETE,
-                    'name' => '删除角色'
+                    'key' => '',
+                    'name' => '角色管理',
+                    'children' => [
+                        [
+                            'id' => 9,
+                            'key' => self::ROLE_VIEW,
+                            'name' => '列表'
+                        ],
+                        [
+                            'id' => 10,
+                            'key' => self::ROLE_CREATE,
+                            'name' => '添加'
+                        ],
+                        [
+                            'id' => 11,
+                            'key' => self::ROLE_UPDATE,
+                            'name' => '更新'
+                        ],
+                        [
+                            'id' => 12,
+                            'key' => self::ROLE_DELETE,
+                            'name' => '删除'
+                        ]
+                    ]
                 ]
             ]
         ]
     ];
 
     /**
-     * 权限列表(二维数组)展开为一维数组
-     * @return \Illuminate\Support\Collection
+     * 权限列表(多维数组)展开为一维数组
+     * @return Collection
      */
-    public static function getFlattenCollection() {
-        $top = collect(self::$permissionList)
-            ->map(function ($item) {
-                if (isset($item['children']))
-                    unset($item['children']);
-                return $item;
-            });
-        $children = collect(self::$permissionList)
-            ->flatten(2)
-            ->filter(function ($item) {
-                return is_array($item);
-            });
-        return $top->merge($children);
+    public static function getFlattenCollection() :Collection
+    {
+        return collect(self::treeToList(self::$permissionList));
+    }
+
+    /**
+     * @param array $data
+     * @return array
+     */
+    public static function treeToList(array $data) :array
+    {
+        $tree = [];
+        foreach ($data as $item) {
+            if (isset($item['children'])) {
+                $childList = self::treeToList($item['children']);
+                unset($item['children']);
+                $tree = array_merge($tree, $childList);
+            }
+            !empty($item['key']) && $tree[] = $item;
+        }
+        return $tree;
     }
 
     /**
      * @param Collection $ids
      * @return Collection
      */
-    public static function getByIds(Collection $ids) {
+    public static function getByIds(Collection $ids) :Collection
+    {
         return self::getFlattenCollection()->whereIn('id', $ids);
     }
 }
