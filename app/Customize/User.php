@@ -2,6 +2,7 @@
 
 namespace App\Customize;
 
+use App\Customize\Database\Eloquent\Model;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\MustVerifyEmail;
 use Illuminate\Auth\Passwords\CanResetPassword;
