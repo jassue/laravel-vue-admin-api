@@ -2,7 +2,7 @@
 
 namespace App\Domain\Admin\Models;
 
-use App\Customize\Model;
+use App\Customize\Database\Eloquent\Model;
 
 class AdminRole extends Model
 {
