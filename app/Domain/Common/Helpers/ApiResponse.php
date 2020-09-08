@@ -38,13 +38,13 @@ trait ApiResponse
     }
 
     /**
-     * @param $data
+     * @param string|array $data
      * @param array $header
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
     private function respond($data, $header = [])
     {
-        return $data ? Response::json($data, $this->statusCode, $header)
+        return $data || is_array($data) ? Response::json($data, $this->statusCode, $header)
             : Response::noContent($this->statusCode, $header);
     }
 
@@ -53,7 +53,7 @@ trait ApiResponse
      * @param int $statusCode
      * @return \Illuminate\Http\JsonResponse|\Illuminate\Http\Response
      */
-    public function success($data = [], int $statusCode = FResponse::HTTP_OK)
+    public function success($data = '', int $statusCode = FResponse::HTTP_OK)
     {
         return $this->setStatus($statusCode)->respond($data);
     }
@@ -75,10 +75,10 @@ trait ApiResponse
     /**
      * Create data successfully
      *
-     * @param array $data
+     * @param string|array $data
      * @return \Illuminate\Http\JsonResponse
      */
-    public function created($data = [])
+    public function created($data = '')
     {
         return $this->success($data, FResponse::HTTP_CREATED);
     }
@@ -90,7 +90,7 @@ trait ApiResponse
      */
     public function accepted()
     {
-        return $this->success([], FResponse::HTTP_ACCEPTED);
+        return $this->success('', FResponse::HTTP_ACCEPTED);
     }
 
     /**
@@ -100,11 +100,11 @@ trait ApiResponse
      */
     public function noContent()
     {
-        return $this->success([], FResponse::HTTP_NO_CONTENT);
+        return $this->success('', FResponse::HTTP_NO_CONTENT);
     }
 
     /**
-     * @param string $message
+     * @param string|array $message
      * @return \Illuminate\Http\JsonResponse
      */
     public function notFound($message = '')
