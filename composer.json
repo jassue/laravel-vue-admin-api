@@ -1,5 +1,5 @@
 {
-    "name": "laravel-admin-api",
+    "name": "laravel/laravel-admin-api",
     "type": "project",
     "description": "The Laravel Framework.",
     "author": "Jassue <jassue@163.com>",
@@ -13,7 +13,7 @@
         "php": "^7.2",
         "barryvdh/laravel-cors": "^1.0",
         "fideloper/proxy": "^4.0",
-        "laravel/framework": "6.0.*",
+        "laravel/framework": "^6.0",
         "laravel/tinker": "^1.0",
         "tymon/jwt-auth": "1.*@rc"
     },
