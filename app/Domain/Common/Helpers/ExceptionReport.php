@@ -24,15 +24,15 @@ class ExceptionReport
     public $report;
 
     public $doReport = [
-        AuthenticationException::class => [ErrorCode::UNAUTHORIZED, 401],
-        ModelNotFoundException::class => [ErrorCode::MODEL_NOT_FOUND, 404],
-        AuthorizationException::class => [ErrorCode::FORBIDDEN, 403],
-        ValidationException::class => [ErrorCode::UNPROCESSABLE_ENTITY, 422],
-        UnauthorizedHttpException::class => [ErrorCode::UNAUTHORIZED, 401],
-        NotFoundHttpException::class => [ErrorCode::HTTP_NOT_FOUND, 404],
-        MethodNotAllowedHttpException::class => [ErrorCode::METHOD_NOT_ALLOWED, 405],
-        QueryException::class => [ErrorCode::SQL_ERROR, 500],
-        BusinessException::class => [ErrorCode::DEFAULT, 400],
+        AuthenticationException::class => ErrorCode::UNAUTHORIZED,
+        ModelNotFoundException::class => ErrorCode::MODEL_NOT_FOUND,
+        AuthorizationException::class => ErrorCode::FORBIDDEN,
+        ValidationException::class => ErrorCode::UNPROCESSABLE_ENTITY,
+        UnauthorizedHttpException::class => ErrorCode::UNAUTHORIZED,
+        NotFoundHttpException::class => ErrorCode::HTTP_NOT_FOUND,
+        MethodNotAllowedHttpException::class => ErrorCode::METHOD_NOT_ALLOWED,
+        QueryException::class => ErrorCode::SQL_ERROR,
+        BusinessException::class => ErrorCode::DEFAULT,
     ];
 
     /**
@@ -82,34 +82,30 @@ class ExceptionReport
      * @return \Illuminate\Http\JsonResponse
      */
     public function report(){
-        $errorMsg = ErrorCode::ErrorMsg[$this->doReport[$this->report][0]] ?? $this->exception->getMessage();
+        $errorMsg = ErrorCode::ErrorMsg[$this->doReport[$this->report]] ?? $this->exception->getMessage();
         if ($this->exception instanceof ValidationException) {
             return $this->failed(
                 collect($this->exception->errors())->first()[0],
-                ErrorCode::UNPROCESSABLE_ENTITY,
-                $this->exception->status
+                $this->doReport[$this->report]
             );
         }
         if ($this->exception instanceof BusinessException) {
             return $this->failed(
                 $this->exception->getMessage() ?: (ErrorCode::ErrorMsg[$this->exception->getCode()] ?? ''),
-                $this->exception->getCode(),
-                $this->exception->getStatusCode()
+                $this->exception->getCode()
             );
         }
         if ($this->exception instanceof QueryException) {
             if (!env('APP_DEBUG')) {
                 return $this->failed(
                     $errorMsg,
-                    $this->doReport[$this->report][0],
-                    $this->doReport[$this->report][1]
+                    $this->doReport[$this->report]
                 );
             }
         }
         return $this->failed(
             $errorMsg,
-            $this->doReport[$this->report][0],
-            $this->doReport[$this->report][1]
+            $this->doReport[$this->report]
         );
     }
 
