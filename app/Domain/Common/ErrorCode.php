@@ -23,9 +23,9 @@ class ErrorCode
     const ACCOUNT_DISABLE = 60006;
 
     const ErrorMsg = [
-        self::DEFAULT => 'Default error.',
-        self::UNAUTHORIZED => 'Unauthenticated.',
-        self::FORBIDDEN => 'This action is unauthorized.',
+        self::DEFAULT => 'Default error',
+        self::UNAUTHORIZED => 'Unauthenticated',
+        self::FORBIDDEN => 'This action is unauthorized',
         self::NOT_FOUND => 'Not Found',
         self::MODEL_NOT_FOUND => 'Model Not Found',
         self::HTTP_NOT_FOUND => 'HTTP Not Found',
